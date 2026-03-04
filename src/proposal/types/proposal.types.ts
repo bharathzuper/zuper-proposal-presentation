@@ -72,7 +72,6 @@ export interface AddOn {
   icon?: string;
   badge?: 'POPULAR' | 'BUNDLE' | 'SAVE';
   subOptions?: AddOnSubOption[];
-  bundleRequiresTrades?: string[];
 }
 
 export interface FinancingOption {
@@ -121,7 +120,6 @@ export interface Proposal {
   contractorInfo: ContractorInfo;
   customer: CustomerInfo;
   trades: Trade[];
-  globalAddOns: AddOn[];
   financing: FinancingOption[];
   signers: Signer[];
   proposalPdfUrl: string;
@@ -144,7 +142,7 @@ export interface ProposalSelections {
   skippedTradeIds: string[];
 }
 
-export type StepId = 'review' | 'package' | 'configure' | 'addons' | 'payment' | 'sign';
+export type StepId = 'review' | 'package' | 'configure' | 'payment' | 'sign';
 
 export interface Step {
   id: StepId;

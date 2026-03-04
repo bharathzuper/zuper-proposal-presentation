@@ -30,6 +30,8 @@ export function usePriceCalculation(
     let packageTotal = 0;
     const packageLabels: string[] = [];
     const tradeSubtotals: TradeSubtotal[] = [];
+    const addOnItems: { name: string; price: number }[] = [];
+    let addOnsTotal = 0;
 
     const activeTrades = proposal.trades.filter(
       (t) => !selections.skippedTradeIds.includes(t.id)
@@ -48,6 +50,8 @@ export function usePriceCalculation(
             for (const addon of trade.tradeAddOns) {
               if (selections.selectedAddOnIds.includes(addon.id)) {
                 tradeAddOnsTotal += addon.price;
+                addOnItems.push({ name: addon.name, price: addon.price });
+                addOnsTotal += addon.price;
               }
             }
           }
@@ -67,28 +71,6 @@ export function usePriceCalculation(
     const packageLabel = packageLabels.length > 0
       ? packageLabels.join(' + ')
       : 'No package selected';
-
-    const addOnItems: { name: string; price: number }[] = [];
-    let addOnsTotal = 0;
-    for (const addOnId of selections.selectedAddOnIds) {
-      const globalAddOn = proposal.globalAddOns.find((a) => a.id === addOnId);
-      if (globalAddOn) {
-        const isDisabledBundle = globalAddOn.bundleRequiresTrades?.some(
-          (tid) => selections.skippedTradeIds.includes(tid)
-        );
-        if (!isDisabledBundle) {
-          addOnItems.push({ name: globalAddOn.name, price: globalAddOn.price });
-          addOnsTotal += globalAddOn.price;
-        }
-      }
-      for (const trade of activeTrades) {
-        const tradeAddOn = trade.tradeAddOns?.find((a) => a.id === addOnId);
-        if (tradeAddOn) {
-          addOnItems.push({ name: tradeAddOn.name, price: tradeAddOn.price });
-          addOnsTotal += tradeAddOn.price;
-        }
-      }
-    }
 
     const selectedTradeCount = activeTrades.filter(
       (t) => selections.tradeSelections[t.id]

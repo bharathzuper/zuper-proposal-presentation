@@ -7,7 +7,6 @@ import { SuccessScreen } from './components/SuccessScreen';
 import { ReviewStep } from './steps/ReviewStep';
 import { PackageStep } from './steps/PackageStep';
 import { ConfigureStep } from './steps/ConfigureStep';
-import { AddOnsStep } from './steps/AddOnsStep';
 import { PaymentStep } from './steps/PaymentStep';
 import { SignStep } from './steps/SignStep';
 import { useProposalState } from './hooks/useProposalState';
@@ -58,8 +57,8 @@ export default function ProposalPage() {
     }
 
     const addOnCount = state.selections.selectedAddOnIds.length;
-    if (addOnCount > 0 && proposal.trades.length > 1) {
-      return `${selectedTrades.length} trades · ${addOnCount} add-on${addOnCount > 1 ? 's' : ''}`;
+    if (addOnCount > 0) {
+      return `${selectedNames.join(' + ')} · ${addOnCount} upgrade${addOnCount > 1 ? 's' : ''}`;
     }
 
     return selectedNames.join(' + ');
@@ -77,8 +76,7 @@ export default function ProposalPage() {
   const ctaLabels: Record<string, string> = {
     review: '',
     package: 'Continue to Configure',
-    configure: 'Continue to Add-ons',
-    addons: 'Continue to Payment',
+    configure: 'Continue to Payment',
     payment: 'Review & Sign',
     sign: '',
   };
@@ -144,13 +142,6 @@ export default function ProposalPage() {
             proposal={proposal}
             selections={state.selections}
             onSelectConfig={state.selectConfig}
-          />
-        );
-      case 'addons':
-        return (
-          <AddOnsStep
-            proposal={proposal}
-            selections={state.selections}
             onToggleAddOn={state.toggleAddOn}
             onSelectAddOnConfig={state.selectAddOnConfig}
           />

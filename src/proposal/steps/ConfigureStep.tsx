@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OptionGroup } from '../components/OptionSwatch';
+import { AddOnCard } from '../components/AddOnCard';
 import { TradeTabBar } from '../components/TradeTabBar';
 import type { Proposal, ProposalSelections } from '../types/proposal.types';
 
@@ -8,6 +9,8 @@ interface ConfigureStepProps {
   proposal: Proposal;
   selections: ProposalSelections;
   onSelectConfig: (tradeId: string, configGroupId: string, optionId: string) => void;
+  onToggleAddOn: (addOnId: string) => void;
+  onSelectAddOnConfig: (addOnId: string, subOptionId: string, optionId: string) => void;
 }
 
 const stagger = {
@@ -20,7 +23,13 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export function ConfigureStep({ proposal, selections, onSelectConfig }: ConfigureStepProps) {
+export function ConfigureStep({
+  proposal,
+  selections,
+  onSelectConfig,
+  onToggleAddOn,
+  onSelectAddOnConfig,
+}: ConfigureStepProps) {
   const visibleTrades = proposal.trades.filter(
     (t) => !selections.skippedTradeIds.includes(t.id)
   );
@@ -32,6 +41,8 @@ export function ConfigureStep({ proposal, selections, onSelectConfig }: Configur
   const pkg = activeTrade && sel
     ? activeTrade.packages.find((p) => p.id === sel.packageId)
     : null;
+
+  const tradeAddOns = activeTrade?.tradeAddOns || [];
 
   const completedTradeIds = visibleTrades
     .filter((trade) => {
@@ -86,6 +97,7 @@ export function ConfigureStep({ proposal, selections, onSelectConfig }: Configur
               </p>
             )}
 
+            {/* Config groups */}
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-10">
               {[...new Set(pkg.configGroups.map((g) => g.category))].map((category) => {
                 const groups = pkg.configGroups.filter((g) => g.category === category);
@@ -110,6 +122,40 @@ export function ConfigureStep({ proposal, selections, onSelectConfig }: Configur
                 );
               })}
             </motion.div>
+
+            {/* Trade-specific add-ons inline */}
+            {tradeAddOns.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="mt-12"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px flex-1 bg-[var(--border-default)]" />
+                  <h3 className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--body-light)] font-sans shrink-0">
+                    {activeTrade.name} Upgrades
+                  </h3>
+                  <div className="h-px flex-1 bg-[var(--border-default)]" />
+                </div>
+                <p className="text-sm text-[var(--body)] font-sans mb-5 leading-relaxed">
+                  Optional upgrades to get the most out of your {activeTrade.name.toLowerCase()} project.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {tradeAddOns.map((addon) => (
+                    <div key={addon.id} className="flex">
+                      <AddOnCard
+                        addon={addon}
+                        isSelected={selections.selectedAddOnIds.includes(addon.id)}
+                        onToggle={() => onToggleAddOn(addon.id)}
+                        subOptionSelections={selections.addOnConfigSelections[addon.id]}
+                        onSubOptionSelect={(subId, optId) => onSelectAddOnConfig(addon.id, subId, optId)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
 
