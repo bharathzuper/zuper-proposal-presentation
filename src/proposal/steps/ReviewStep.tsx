@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,
@@ -10,22 +10,30 @@ import {
   ArrowRight,
   FileText,
 } from 'lucide-react';
-import type { Proposal } from '../types/proposal.types';
+import type { AcknowledgedPageSnapshot, Proposal } from '../types/proposal.types';
+import { useAcknowledgementSettings } from '../context/AcknowledgementSettingsContext';
+import { PageAcknowledgementFooter } from '../components/PageAcknowledgementFooter';
 
 interface ReviewStepProps {
   proposal: Proposal;
   acknowledged: boolean;
   onAcknowledge: (value: boolean) => void;
   onContinue: () => void;
+  signatureData?: string;
+  /** Controlled list of page IDs the customer has acknowledged (persists if they leave and return). */
+  acknowledgedPageIds: string[];
+  onAcknowledgedPageIdsChange: (ids: string[]) => void;
+  onAcknowledgedPagesSnapshotChange?: (pages: AcknowledgedPageSnapshot[]) => void;
 }
 
 interface PageMeta {
   id: string;
   title: string;
   required: boolean;
+  acknowledgementText?: string;
 }
 
-const PAGE_META: PageMeta[] = [
+const STATIC_PAGES: PageMeta[] = [
   { id: 'cover', title: 'Cover & About Us', required: false },
   { id: 'inspection', title: 'Inspection Summary', required: true },
   { id: 'scope', title: 'Scope of Work & Estimate', required: true },
@@ -401,51 +409,79 @@ function TermsPage({ proposal }: { proposal: Proposal }) {
 
 // ─── Main ReviewStep ───────────────────────────────────────────────────
 
+function buildPageMeta(
+  ackSettings: { enabled: boolean; pages: { pageId: string; pageTitle: string; requiresAcknowledgement: boolean; acknowledgementText: string }[] }
+): PageMeta[] {
+  return STATIC_PAGES.map((staticPage) => {
+    const cfg = ackSettings.pages.find((p) => p.pageId === staticPage.id);
+    const required = ackSettings.enabled
+      ? (cfg?.requiresAcknowledgement ?? false)
+      : staticPage.required;
+    return {
+      id: staticPage.id,
+      title: cfg?.pageTitle ?? staticPage.title,
+      required,
+      acknowledgementText: cfg?.acknowledgementText?.trim() ?? '',
+    };
+  });
+}
+
 export function ReviewStep({
   proposal,
   acknowledged,
   onAcknowledge,
   onContinue,
+  signatureData,
+  acknowledgedPageIds,
+  onAcknowledgedPageIdsChange,
+  onAcknowledgedPagesSnapshotChange,
 }: ReviewStepProps) {
-  const [acknowledgedPages, setAcknowledgedPages] = useState<Set<string>>(new Set());
-  const [visibleSection, setVisibleSection] = useState<string>(PAGE_META[0].id);
+  const { settings: ackSettings } = useAcknowledgementSettings();
+
+  const pageMeta = useMemo(() => buildPageMeta(ackSettings), [ackSettings]);
+
+  const acknowledgedPages = useMemo(
+    () => new Set(acknowledgedPageIds),
+    [acknowledgedPageIds]
+  );
+
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const requiredPages = PAGE_META.filter((p) => p.required);
+  const requiredPages = pageMeta.filter((p) => p.required);
   const allRequiredAcknowledged = requiredPages.every((p) => acknowledgedPages.has(p.id));
 
-  const visibleMeta = PAGE_META.find((p) => p.id === visibleSection) || PAGE_META[0];
-  const visibleIndex = PAGE_META.findIndex((p) => p.id === visibleSection);
-  const isVisibleAcknowledged = acknowledgedPages.has(visibleSection);
+  /** Next required section in document order (not scroll position). */
+  const nextRequiredMeta = useMemo(() => {
+    return pageMeta.find((p) => p.required && !acknowledgedPages.has(p.id));
+  }, [pageMeta, acknowledgedPages]);
 
-  const acknowledgedCount = [...acknowledgedPages].filter((id) =>
+  /** 1-based index among required sections only (not document pages — cover is not counted). */
+  const nextRequiredStep =
+    nextRequiredMeta && requiredPages.length > 0
+      ? requiredPages.findIndex((p) => p.id === nextRequiredMeta.id) + 1
+      : 0;
+
+  const acknowledgedCount = acknowledgedPageIds.filter((id) =>
     requiredPages.some((p) => p.id === id)
   ).length;
   const progressPercent =
     requiredPages.length > 0 ? (acknowledgedCount / requiredPages.length) * 100 : 0;
 
-  // Track which section is in the viewport
+  const acknowledgedSnapshot = useMemo((): AcknowledgedPageSnapshot[] => {
+    return pageMeta
+      .filter((m) => m.required && acknowledgedPages.has(m.id))
+      .map((m) => ({
+        pageId: m.id,
+        pageTitle: m.title,
+        acknowledgementText:
+          m.acknowledgementText ||
+          'I acknowledge that I have reviewed this section of the proposal.',
+      }));
+  }, [pageMeta, acknowledgedPages]);
+
   useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-
-    PAGE_META.forEach((meta) => {
-      const el = sectionRefs.current[meta.id];
-      if (!el) return;
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setVisibleSection(meta.id);
-          }
-        },
-        { rootMargin: '-40% 0px -55% 0px', threshold: 0 }
-      );
-      observer.observe(el);
-      observers.push(observer);
-    });
-
-    return () => observers.forEach((o) => o.disconnect());
-  }, []);
+    onAcknowledgedPagesSnapshotChange?.(acknowledgedSnapshot);
+  }, [acknowledgedSnapshot, onAcknowledgedPagesSnapshotChange]);
 
   // Sync up to parent when all required sections acknowledged
   useEffect(() => {
@@ -455,19 +491,16 @@ export function ReviewStep({
   }, [allRequiredAcknowledged, acknowledged, onAcknowledge]);
 
   const handleAcknowledgeAndContinue = useCallback(() => {
-    // Acknowledge the current section if it's required
-    if (visibleMeta.required && !isVisibleAcknowledged) {
-      setAcknowledgedPages((prev) => {
-        const next = new Set(prev);
-        next.add(visibleSection);
-        return next;
-      });
-    }
+    const target = pageMeta.find((p) => p.required && !acknowledgedPages.has(p.id));
+    if (!target) return;
 
-    // Scroll to the next section (any section, not just required ones)
-    const currentIdx = PAGE_META.findIndex((p) => p.id === visibleSection);
-    for (let i = currentIdx + 1; i < PAGE_META.length; i++) {
-      const meta = PAGE_META[i];
+    const next = new Set(acknowledgedPages);
+    next.add(target.id);
+    onAcknowledgedPageIdsChange(Array.from(next));
+
+    const currentIdx = pageMeta.findIndex((p) => p.id === target.id);
+    for (let i = currentIdx + 1; i < pageMeta.length; i++) {
+      const meta = pageMeta[i];
       const el = sectionRefs.current[meta.id];
       if (el) {
         const y = el.getBoundingClientRect().top + window.scrollY - 100;
@@ -475,7 +508,7 @@ export function ReviewStep({
         return;
       }
     }
-  }, [visibleSection, visibleMeta, isVisibleAcknowledged]);
+  }, [pageMeta, acknowledgedPages, onAcknowledgedPageIdsChange]);
 
   return (
     <div className="max-w-3xl mx-auto px-0 sm:px-6 pt-0 sm:pt-4 pb-28">
@@ -490,9 +523,11 @@ export function ReviewStep({
 
       {/* All pages stacked vertically */}
       <div className="bg-white sm:border-x border-[var(--border-default)]">
-        {PAGE_META.map((meta, idx) => {
-          const isAcked = acknowledgedPages.has(meta.id);
-          const isViewing = visibleSection === meta.id;
+        {pageMeta.map((meta, idx) => {
+          const showAckFooter = ackSettings.enabled && meta.required;
+          const footerText =
+            meta.acknowledgementText ||
+            'I acknowledge that I have reviewed this section of the proposal.';
 
           return (
             <div key={meta.id}>
@@ -504,6 +539,13 @@ export function ReviewStep({
                 {meta.id === 'inspection' && <InspectionPage proposal={proposal} />}
                 {meta.id === 'scope' && <ScopePage proposal={proposal} />}
                 {meta.id === 'terms' && <TermsPage proposal={proposal} />}
+                {showAckFooter && (
+                  <PageAcknowledgementFooter
+                    acknowledgementText={footerText}
+                    isAcknowledged={acknowledgedPages.has(meta.id)}
+                    signatureData={signatureData}
+                  />
+                )}
               </div>
             </div>
           );
@@ -551,16 +593,10 @@ export function ReviewStep({
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] text-[var(--body-light)] font-sans uppercase tracking-wider">
-                    Section {visibleIndex + 1} of {PAGE_META.length}
-                    {isVisibleAcknowledged && visibleMeta.required && (
-                      <span className="ml-2 text-emerald-600">
-                        <CheckCircle2 className="w-3 h-3 inline -mt-px mr-0.5" />
-                        Acknowledged
-                      </span>
-                    )}
+                    Acknowledgement {nextRequiredStep} of {requiredPages.length}
                   </p>
                   <p className="text-sm font-medium text-[var(--heading)] font-sans truncate">
-                    {visibleMeta.title}
+                    {nextRequiredMeta?.title ?? 'Review'}
                   </p>
                 </div>
 

@@ -142,6 +142,25 @@ export interface ProposalSelections {
   skippedTradeIds: string[];
 }
 
+export interface PageAcknowledgementConfig {
+  pageId: string;
+  pageTitle: string;
+  requiresAcknowledgement: boolean;
+  acknowledgementText: string;
+}
+
+export interface ProposalAcknowledgementSettings {
+  enabled: boolean;
+  pages: PageAcknowledgementConfig[];
+}
+
+/** Pages the customer acknowledged in review (passed to sign step for summary). */
+export interface AcknowledgedPageSnapshot {
+  pageId: string;
+  pageTitle: string;
+  acknowledgementText: string;
+}
+
 export type StepId = 'review' | 'package' | 'configure' | 'payment' | 'sign';
 
 export interface Step {

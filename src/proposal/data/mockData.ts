@@ -1,4 +1,4 @@
-import type { Proposal } from '../types/proposal.types';
+import type { Proposal, ProposalAcknowledgementSettings } from '../types/proposal.types';
 
 // ─── Package hero images (houses — verified Unsplash) ──────────────────
 const IMG_PKG_STANDARD = 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&h=400&fit=crop&q=80';
@@ -530,4 +530,37 @@ export const mockProposalV2: Proposal = {
     amount: 400,
     label: 'Multi-trade bundle discount',
   },
+};
+
+export const defaultAcknowledgementSettings: ProposalAcknowledgementSettings = {
+  enabled: true,
+  pages: [
+    {
+      pageId: 'cover',
+      pageTitle: 'Cover & About Us',
+      requiresAcknowledgement: false,
+      acknowledgementText: '',
+    },
+    {
+      pageId: 'inspection',
+      pageTitle: 'Inspection Summary',
+      requiresAcknowledgement: true,
+      acknowledgementText:
+        'I acknowledge that I have reviewed the Inspection Summary and agree with the findings presented.',
+    },
+    {
+      pageId: 'scope',
+      pageTitle: 'Scope of Work & Estimate',
+      requiresAcknowledgement: true,
+      acknowledgementText:
+        'I acknowledge that I have reviewed the Scope of Work and understand the services to be performed.',
+    },
+    {
+      pageId: 'terms',
+      pageTitle: 'Terms & Conditions',
+      requiresAcknowledgement: true,
+      acknowledgementText:
+        'I acknowledge that I have read and agree to the Terms & Conditions outlined above.',
+    },
+  ],
 };

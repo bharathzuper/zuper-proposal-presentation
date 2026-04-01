@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ProposalStepper } from './components/ProposalStepper';
 import { StickyPriceCTA } from './components/StickyPriceCTA';
@@ -13,6 +13,8 @@ import { useProposalState } from './hooks/useProposalState';
 import { usePriceCalculation } from './hooks/usePriceCalculation';
 import { useStepNavigation } from './hooks/useStepNavigation';
 import { mockProposalV2 } from './data/mockData';
+import { AcknowledgementSettingsProvider } from './context/AcknowledgementSettingsContext';
+import type { AcknowledgedPageSnapshot } from './types/proposal.types';
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -26,12 +28,16 @@ const slideVariants = {
   }),
 };
 
-export default function ProposalPage() {
+function ProposalPageContent() {
   const proposal = mockProposalV2;
   const state = useProposalState(proposal);
   const nav = useStepNavigation();
   const breakdown = usePriceCalculation(proposal, state.selections);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [reviewAcknowledgedPageIds, setReviewAcknowledgedPageIds] = useState<string[]>([]);
+  const [acknowledgedPagesSnapshot, setAcknowledgedPagesSnapshot] = useState<
+    AcknowledgedPageSnapshot[]
+  >([]);
 
   const adaptiveLabel = useMemo(() => {
     const activeTrades = proposal.trades.filter(
@@ -63,6 +69,10 @@ export default function ProposalPage() {
 
     return selectedNames.join(' + ');
   }, [proposal, state.selections]);
+
+  const handleReviewAcknowledgedPageIdsChange = useCallback((ids: string[]) => {
+    setReviewAcknowledgedPageIds(ids);
+  }, []);
 
   if (state.isComplete) {
     return (
@@ -123,6 +133,10 @@ export default function ProposalPage() {
             acknowledged={acknowledged}
             onAcknowledge={setAcknowledged}
             onContinue={nav.goNext}
+            signatureData={state.selections.signatureData}
+            acknowledgedPageIds={reviewAcknowledgedPageIds}
+            onAcknowledgedPageIdsChange={handleReviewAcknowledgedPageIdsChange}
+            onAcknowledgedPagesSnapshotChange={setAcknowledgedPagesSnapshot}
           />
         );
       case 'package':
@@ -162,6 +176,7 @@ export default function ProposalPage() {
             proposal={proposal}
             selections={state.selections}
             breakdown={breakdown}
+            acknowledgedPages={acknowledgedPagesSnapshot}
             onSign={(sig) => {
               state.setSignature(sig);
               state.completeProposal();
@@ -214,5 +229,13 @@ export default function ProposalPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ProposalPage() {
+  return (
+    <AcknowledgementSettingsProvider>
+      <ProposalPageContent />
+    </AcknowledgementSettingsProvider>
   );
 }
