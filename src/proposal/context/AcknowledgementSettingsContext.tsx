@@ -13,6 +13,12 @@ const DEFAULT_SETTINGS: ProposalAcknowledgementSettings = {
       acknowledgementText: '',
     },
     {
+      pageId: 'projects',
+      pageTitle: 'Past Projects & References',
+      requiresAcknowledgement: false,
+      acknowledgementText: '',
+    },
+    {
       pageId: 'inspection',
       pageTitle: 'Inspection Summary',
       requiresAcknowledgement: true,
@@ -25,6 +31,13 @@ const DEFAULT_SETTINGS: ProposalAcknowledgementSettings = {
       requiresAcknowledgement: true,
       acknowledgementText:
         'I acknowledge that I have reviewed the Scope of Work and understand the services to be performed.',
+    },
+    {
+      pageId: 'materials',
+      pageTitle: 'Materials & Warranty',
+      requiresAcknowledgement: true,
+      acknowledgementText:
+        'I acknowledge that I have reviewed the proposed materials and warranty coverage for this project.',
     },
     {
       pageId: 'terms',

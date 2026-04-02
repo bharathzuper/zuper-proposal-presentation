@@ -1,33 +1,52 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Check, CheckCircle2 } from 'lucide-react';
+import { FileText, Check } from 'lucide-react';
 import { OrderSummary } from '../components/OrderSummary';
 import { SignaturePad } from '../components/SignaturePad';
 import { TrustBadges } from '../components/TrustBadges';
-import type {
-  AcknowledgedPageSnapshot,
-  Proposal,
-  ProposalSelections,
-} from '../types/proposal.types';
+import type { AcknowledgedPageSnapshot, Proposal, ProposalSelections } from '../types/proposal.types';
 import type { PriceBreakdown } from '../hooks/usePriceCalculation';
+import { useAcknowledgementSettings } from '../context/AcknowledgementSettingsContext';
 
 interface SignStepProps {
   proposal: Proposal;
   selections: ProposalSelections;
   breakdown: PriceBreakdown;
   onSign: (signatureData: string) => void;
-  acknowledgedPages?: AcknowledgedPageSnapshot[];
 }
 
-export function SignStep({
-  proposal,
-  selections,
-  breakdown,
-  onSign,
-  acknowledgedPages = [],
-}: SignStepProps) {
+export function SignStep({ proposal, selections, breakdown, onSign }: SignStepProps) {
+  const { settings: ackSettings } = useAcknowledgementSettings();
+
+  /** Page-level statements the signer affirms when they sign (from admin/settings, not review step). */
+  const acknowledgementPages = useMemo((): AcknowledgedPageSnapshot[] => {
+    if (!ackSettings.enabled) return [];
+    return ackSettings.pages
+      .filter((p) => p.requiresAcknowledgement)
+      .map((p) => ({
+        pageId: p.pageId,
+        pageTitle: p.pageTitle,
+        acknowledgementText:
+          p.acknowledgementText.trim() ||
+          'I acknowledge that I have reviewed this section of the proposal.',
+      }));
+  }, [ackSettings]);
+
   const [signatureData, setSignatureData] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkedAcks, setCheckedAcks] = useState<Set<string>>(() => new Set());
+
+  const allAcksChecked =
+    acknowledgementPages.length === 0 || checkedAcks.size === acknowledgementPages.length;
+
+  const toggleAck = (pageId: string) => {
+    setCheckedAcks((prev) => {
+      const next = new Set(prev);
+      if (next.has(pageId)) next.delete(pageId);
+      else next.add(pageId);
+      return next;
+    });
+  };
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const currentSigner = proposal.signers.find((s) => s.status === 'current') || proposal.signers[0];
 
@@ -65,8 +84,8 @@ export function SignStep({
         <OrderSummary proposal={proposal} selections={selections} breakdown={breakdown} />
       </motion.div>
 
-      {/* Acknowledged proposal pages (from review step) */}
-      {acknowledgedPages.length > 0 && (
+      {/* Page acknowledgements — affirmed when customer signs */}
+      {acknowledgementPages.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,41 +96,50 @@ export function SignStep({
             Document acknowledgements
           </h3>
           <p className="text-xs text-[var(--body-light)] font-sans mb-4 leading-relaxed">
-            Your signature below applies to each section you acknowledged during review.
+            Please review and check each acknowledgement before signing.
           </p>
-          <ul className="space-y-4">
-            {acknowledgedPages.map((page) => (
-              <li
-                key={page.pageId}
-                className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 pb-4 border-b border-[var(--border-default)] last:border-0 last:pb-0"
-              >
-                <div className="flex gap-3 min-w-0 flex-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--heading)] font-sans">
-                      {page.pageTitle}
-                    </p>
-                    <p className="text-xs text-[var(--body)] font-sans mt-1 leading-relaxed">
-                      {page.acknowledgementText}
-                    </p>
-                  </div>
-                </div>
-                <div className="shrink-0 sm:w-36 h-12 rounded-md border border-dashed border-[var(--border-default)] bg-[var(--surface)] flex items-center justify-center overflow-hidden pl-2 pr-2">
-                  {signatureData ? (
-                    <img
-                      src={signatureData}
-                      alt=""
-                      className="max-h-10 w-auto object-contain opacity-90"
-                    />
-                  ) : (
-                    <span className="text-[10px] text-[var(--body-light)] font-sans text-center leading-tight">
-                      Signature preview
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-3">
+            {acknowledgementPages.map((page) => {
+              const isChecked = checkedAcks.has(page.pageId);
+              return (
+                <li key={page.pageId}>
+                  <button
+                    type="button"
+                    onClick={() => toggleAck(page.pageId)}
+                    className={`w-full text-left flex gap-3 p-3.5 rounded-lg border transition-all duration-200 ${
+                      isChecked
+                        ? 'border-emerald-300 bg-emerald-50/60'
+                        : 'border-[var(--border-default)] bg-[var(--surface)] hover:border-[var(--body-light)]/40'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 border-2 transition-all duration-200 ${
+                        isChecked
+                          ? 'bg-emerald-600 border-emerald-600'
+                          : 'border-[var(--border-default)] bg-white'
+                      }`}
+                    >
+                      {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium font-sans ${isChecked ? 'text-emerald-800' : 'text-[var(--heading)]'}`}>
+                        {page.pageTitle}
+                      </p>
+                      <p className={`text-xs font-sans mt-1 leading-relaxed ${isChecked ? 'text-emerald-700/80' : 'text-[var(--body)]'}`}>
+                        {page.acknowledgementText}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
+
+          {!allAcksChecked && (
+            <p className="text-xs text-amber-600 font-sans mt-3">
+              Check all {acknowledgementPages.length} acknowledgements to continue
+            </p>
+          )}
         </motion.div>
       )}
 
@@ -129,12 +157,11 @@ export function SignStep({
           <div>
             <h3 className="text-lg font-serif text-[var(--heading)]">Signature Required</h3>
             <p className="text-sm text-[var(--body)] font-sans mt-1 leading-relaxed">
-              {acknowledgedPages.length > 0 ? (
+              {acknowledgementPages.length > 0 ? (
                 <>
-                  You acknowledged each section above during review. By signing below, you confirm
-                  those statements and agree to the proposal terms, and you authorize{' '}
-                  <strong>{proposal.contractorInfo.name}</strong> to proceed with the work as
-                  described.
+                  By signing below, you confirm each acknowledgement listed above, agree to the
+                  proposal terms, and authorize <strong>{proposal.contractorInfo.name}</strong> to
+                  proceed with the work as described.
                 </>
               ) : (
                 <>
@@ -167,11 +194,11 @@ export function SignStep({
 
         <motion.button
           onClick={handleSubmit}
-          disabled={!signatureData || isSubmitting}
-          whileHover={signatureData ? { scale: 1.01 } : {}}
-          whileTap={signatureData ? { scale: 0.99 } : {}}
+          disabled={!signatureData || !allAcksChecked || isSubmitting}
+          whileHover={signatureData && allAcksChecked ? { scale: 1.01 } : {}}
+          whileTap={signatureData && allAcksChecked ? { scale: 0.99 } : {}}
           className={`mt-6 w-full py-4 rounded-xl text-base font-medium font-sans flex items-center justify-center gap-2 transition-all duration-200 ${
-            signatureData && !isSubmitting
+            signatureData && allAcksChecked && !isSubmitting
               ? 'bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] shadow-md hover:shadow-lg'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}

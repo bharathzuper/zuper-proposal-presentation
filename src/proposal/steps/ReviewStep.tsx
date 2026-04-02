@@ -1,7 +1,6 @@
-import { useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  CheckCircle2,
   Award,
   Shield,
   Check,
@@ -9,35 +8,26 @@ import {
   Clock,
   ArrowRight,
   FileText,
+  Star,
+  Hammer,
+  ShieldCheck,
+  FileSignature,
 } from 'lucide-react';
-import type { AcknowledgedPageSnapshot, Proposal } from '../types/proposal.types';
+import type { Proposal } from '../types/proposal.types';
 import { useAcknowledgementSettings } from '../context/AcknowledgementSettingsContext';
-import { PageAcknowledgementFooter } from '../components/PageAcknowledgementFooter';
 
 interface ReviewStepProps {
   proposal: Proposal;
-  acknowledged: boolean;
-  onAcknowledge: (value: boolean) => void;
   onContinue: () => void;
-  signatureData?: string;
-  /** Controlled list of page IDs the customer has acknowledged (persists if they leave and return). */
-  acknowledgedPageIds: string[];
-  onAcknowledgedPageIdsChange: (ids: string[]) => void;
-  onAcknowledgedPagesSnapshotChange?: (pages: AcknowledgedPageSnapshot[]) => void;
 }
 
-interface PageMeta {
-  id: string;
-  title: string;
-  required: boolean;
-  acknowledgementText?: string;
-}
-
-const STATIC_PAGES: PageMeta[] = [
-  { id: 'cover', title: 'Cover & About Us', required: false },
-  { id: 'inspection', title: 'Inspection Summary', required: true },
-  { id: 'scope', title: 'Scope of Work & Estimate', required: true },
-  { id: 'terms', title: 'Terms & Conditions', required: true },
+const DOCUMENT_SECTIONS = [
+  { id: 'cover' as const, label: 'Cover' },
+  { id: 'projects' as const, label: 'Projects' },
+  { id: 'inspection' as const, label: 'Inspection' },
+  { id: 'scope' as const, label: 'Scope of Work' },
+  { id: 'materials' as const, label: 'Materials' },
+  { id: 'terms' as const, label: 'Terms' },
 ];
 
 // ─── Page Components ───────────────────────────────────────────────────
@@ -336,6 +326,196 @@ function ScopePage({ proposal }: { proposal: Proposal }) {
   );
 }
 
+function PastProjectsPage({ proposal }: { proposal: Proposal }) {
+  const projects = [
+    {
+      src: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop&q=80',
+      title: 'Anderson Residence — Full Replacement',
+      location: 'Springfield, IL',
+      desc: 'Complete tear-off and installation of CertainTeed Grand Manor luxury shingles. Included custom copper flashing and upgraded ridge ventilation.',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop&q=80',
+      title: 'Westfield Community Center',
+      location: 'Chatham, IL',
+      desc: 'Commercial flat-roof restoration with TPO membrane. 15,000 sq ft completed in 5 days with zero disruption to building operations.',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&h=400&fit=crop&q=80',
+      title: 'Parker Family Home — Storm Damage',
+      location: 'Rochester, IL',
+      desc: 'Insurance-claim roof replacement after hail damage. GAF Timberline HDZ shingles with full ice & water shield. Completed in 2 days.',
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: 'David & Linda Thompson',
+      text: 'Summit was professional from start to finish. The crew was punctual, respectful, and left our property cleaner than they found it. Highly recommend.',
+      rating: 5,
+    },
+    {
+      name: 'Maria Gonzales',
+      text: 'After getting three bids, Summit offered the best value and the most thorough inspection. Our new roof looks incredible and the warranty gives us peace of mind.',
+      rating: 5,
+    },
+  ];
+
+  return (
+    <div className="bg-white px-6 py-8 sm:px-10 sm:py-10">
+      <h2 className="text-2xl font-serif text-[var(--heading)] mb-2">Past Projects & References</h2>
+      <p className="text-sm text-[var(--body)] font-sans mb-6 leading-relaxed">
+        A selection of recent projects completed by {proposal.contractorInfo.name}.
+      </p>
+
+      <div className="space-y-6 mb-8">
+        {projects.map((project) => (
+          <div key={project.title} className="flex flex-col sm:flex-row gap-4">
+            <img
+              src={project.src}
+              alt={project.title}
+              className="w-full sm:w-40 h-32 sm:h-28 object-cover rounded-lg border border-[var(--border-default)] shrink-0"
+            />
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold text-[var(--heading)] font-sans">{project.title}</h4>
+              <p className="text-[11px] text-[var(--body-light)] font-sans mt-0.5">{project.location}</p>
+              <p className="text-xs text-[var(--body)] font-sans mt-1.5 leading-relaxed">{project.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="text-base font-semibold text-[var(--heading)] font-sans mb-4">
+        Customer Testimonials
+      </h3>
+      <div className="space-y-4">
+        {testimonials.map((t) => (
+          <div key={t.name} className="p-4 bg-[var(--surface)] border border-[var(--border-default)] rounded-lg">
+            <div className="flex items-center gap-1 mb-2">
+              {Array.from({ length: t.rating }).map((_, i) => (
+                <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              ))}
+            </div>
+            <p className="text-xs text-[var(--body)] font-sans leading-relaxed italic mb-2">
+              &ldquo;{t.text}&rdquo;
+            </p>
+            <p className="text-xs font-medium text-[var(--heading)] font-sans">{t.name}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MaterialsWarrantyPage({ proposal }: { proposal: Proposal }) {
+  const materials = [
+    {
+      category: 'Shingles',
+      name: 'GAF Timberline HDZ® / CertainTeed Grand Manor®',
+      detail: 'Architectural-grade laminated shingles with superior wind resistance (up to 130 mph). Class A fire rated, algae-resistant granules.',
+      icon: Hammer,
+    },
+    {
+      category: 'Underlayment',
+      name: 'GAF Deck-Armor™ / CertainTeed DiamondDeck™',
+      detail: 'Premium synthetic underlayment providing a secondary weather barrier. Slip-resistant surface for safer installation.',
+      icon: Shield,
+    },
+    {
+      category: 'Ice & Water Shield',
+      name: 'GAF WeatherWatch® / CertainTeed WinterGuard®',
+      detail: 'Self-adhering membrane applied to eaves, valleys, and penetrations. Prevents ice-dam leaks and wind-driven rain infiltration.',
+      icon: ShieldCheck,
+    },
+    {
+      category: 'Ventilation',
+      name: 'GAF Cobra® Ridge Vent',
+      detail: 'Externally baffled ridge vent that provides balanced attic ventilation while remaining virtually invisible from the ground.',
+      icon: Award,
+    },
+  ];
+
+  const warranties = [
+    {
+      tier: 'Standard Package',
+      manufacturer: '25-year limited',
+      workmanship: '5-year workmanship',
+    },
+    {
+      tier: 'Premium Package',
+      manufacturer: '50-year limited lifetime',
+      workmanship: '25-year workmanship',
+    },
+    {
+      tier: 'Elite Package',
+      manufacturer: '75-year transferable',
+      workmanship: 'Lifetime workmanship',
+    },
+  ];
+
+  return (
+    <div className="bg-white px-6 py-8 sm:px-10 sm:py-10">
+      <h2 className="text-2xl font-serif text-[var(--heading)] mb-2">Materials & Warranty</h2>
+      <p className="text-sm text-[var(--body)] font-sans mb-6 leading-relaxed">
+        We use only premium, manufacturer-certified materials. Every component is selected for
+        performance, longevity, and compatibility.
+      </p>
+
+      <div className="space-y-4 mb-8">
+        {materials.map((mat) => {
+          const Icon = mat.icon;
+          return (
+            <div key={mat.category} className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Icon className="w-4 h-4 text-[var(--brand-primary)]" />
+              </div>
+              <div>
+                <p className="text-[11px] text-[var(--body-light)] font-sans uppercase tracking-wider">
+                  {mat.category}
+                </p>
+                <h4 className="text-sm font-medium text-[var(--heading)] font-sans mt-0.5">{mat.name}</h4>
+                <p className="text-xs text-[var(--body)] font-sans leading-relaxed mt-1">{mat.detail}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <h3 className="text-base font-semibold text-[var(--heading)] font-sans mb-4">
+        Warranty Coverage by Package
+      </h3>
+      <div className="border border-[var(--border-default)] rounded-lg overflow-hidden">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-[var(--surface)]">
+              <th className="px-4 py-2.5 text-[11px] text-[var(--body-light)] font-sans font-medium uppercase tracking-wider">Package</th>
+              <th className="px-4 py-2.5 text-[11px] text-[var(--body-light)] font-sans font-medium uppercase tracking-wider">Manufacturer</th>
+              <th className="px-4 py-2.5 text-[11px] text-[var(--body-light)] font-sans font-medium uppercase tracking-wider">Workmanship</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border-default)]">
+            {warranties.map((w) => (
+              <tr key={w.tier}>
+                <td className="px-4 py-3 text-sm font-medium text-[var(--heading)] font-sans">{w.tier}</td>
+                <td className="px-4 py-3 text-xs text-[var(--body)] font-sans">{w.manufacturer}</td>
+                <td className="px-4 py-3 text-xs text-[var(--body)] font-sans">{w.workmanship}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+        <p className="text-xs text-emerald-900 font-sans leading-relaxed">
+          <strong>Warranty note:</strong> All manufacturer warranties require professional installation
+          by a certified contractor. {proposal.contractorInfo.name} is a certified installer for all
+          listed manufacturers, ensuring full warranty eligibility.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function TermsPage({ proposal }: { proposal: Proposal }) {
   const terms = [
     {
@@ -407,108 +587,108 @@ function TermsPage({ proposal }: { proposal: Proposal }) {
   );
 }
 
-// ─── Main ReviewStep ───────────────────────────────────────────────────
+// ─── Acknowledgement Preview (read-only) ────────────────────────────────
 
-function buildPageMeta(
-  ackSettings: { enabled: boolean; pages: { pageId: string; pageTitle: string; requiresAcknowledgement: boolean; acknowledgementText: string }[] }
-): PageMeta[] {
-  return STATIC_PAGES.map((staticPage) => {
-    const cfg = ackSettings.pages.find((p) => p.pageId === staticPage.id);
-    const required = ackSettings.enabled
-      ? (cfg?.requiresAcknowledgement ?? false)
-      : staticPage.required;
-    return {
-      id: staticPage.id,
-      title: cfg?.pageTitle ?? staticPage.title,
-      required,
-      acknowledgementText: cfg?.acknowledgementText?.trim() ?? '',
-    };
-  });
+function AcknowledgementPreviewFooter({ text }: { text: string }) {
+  return (
+    <div className="border-t border-dashed border-[var(--border-default)] bg-slate-50/80">
+      <div className="px-6 py-5 sm:px-10 sm:py-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-5 h-5 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center shrink-0 mt-0.5">
+            <FileSignature className="w-3 h-3 text-[var(--brand-primary)]" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-[var(--brand-primary)] font-sans font-medium uppercase tracking-wider mb-1">
+              Acknowledgement Required
+            </p>
+            <p className="text-sm text-[var(--body)] leading-relaxed font-sans">
+              {text}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative rounded-lg border border-dashed border-[var(--border-default)] h-16 bg-white/60 flex items-center justify-center gap-2">
+          <div className="w-16 border-b border-[var(--body-light)]/25" />
+          <span className="text-[11px] text-[var(--body-light)]/70 font-sans tracking-wide">
+            Your signature will appear here
+          </span>
+          <div className="w-16 border-b border-[var(--body-light)]/25" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export function ReviewStep({
-  proposal,
-  acknowledged,
-  onAcknowledge,
-  onContinue,
-  signatureData,
-  acknowledgedPageIds,
-  onAcknowledgedPageIdsChange,
-  onAcknowledgedPagesSnapshotChange,
-}: ReviewStepProps) {
+// ─── Main ReviewStep ───────────────────────────────────────────────────
+
+export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
   const { settings: ackSettings } = useAcknowledgementSettings();
 
-  const pageMeta = useMemo(() => buildPageMeta(ackSettings), [ackSettings]);
+  const ackByPageId = ackSettings.enabled
+    ? Object.fromEntries(
+        ackSettings.pages
+          .filter((p) => p.requiresAcknowledgement && p.acknowledgementText)
+          .map((p) => [p.pageId, p.acknowledgementText]),
+      )
+    : {};
 
-  const acknowledgedPages = useMemo(
-    () => new Set(acknowledgedPageIds),
-    [acknowledgedPageIds]
-  );
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const isScrollingTo = useRef(false);
 
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  const requiredPages = pageMeta.filter((p) => p.required);
-  const allRequiredAcknowledged = requiredPages.every((p) => acknowledgedPages.has(p.id));
-
-  /** Next required section in document order (not scroll position). */
-  const nextRequiredMeta = useMemo(() => {
-    return pageMeta.find((p) => p.required && !acknowledgedPages.has(p.id));
-  }, [pageMeta, acknowledgedPages]);
-
-  /** 1-based index among required sections only (not document pages — cover is not counted). */
-  const nextRequiredStep =
-    nextRequiredMeta && requiredPages.length > 0
-      ? requiredPages.findIndex((p) => p.id === nextRequiredMeta.id) + 1
-      : 0;
-
-  const acknowledgedCount = acknowledgedPageIds.filter((id) =>
-    requiredPages.some((p) => p.id === id)
-  ).length;
-  const progressPercent =
-    requiredPages.length > 0 ? (acknowledgedCount / requiredPages.length) * 100 : 0;
-
-  const acknowledgedSnapshot = useMemo((): AcknowledgedPageSnapshot[] => {
-    return pageMeta
-      .filter((m) => m.required && acknowledgedPages.has(m.id))
-      .map((m) => ({
-        pageId: m.id,
-        pageTitle: m.title,
-        acknowledgementText:
-          m.acknowledgementText ||
-          'I acknowledge that I have reviewed this section of the proposal.',
-      }));
-  }, [pageMeta, acknowledgedPages]);
+  const isLastSection = activeIdx === DOCUMENT_SECTIONS.length - 1;
 
   useEffect(() => {
-    onAcknowledgedPagesSnapshotChange?.(acknowledgedSnapshot);
-  }, [acknowledgedSnapshot, onAcknowledgedPagesSnapshotChange]);
+    const els = sectionRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (els.length === 0) return;
 
-  // Sync up to parent when all required sections acknowledged
-  useEffect(() => {
-    if (allRequiredAcknowledged && !acknowledged) {
-      onAcknowledge(true);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingTo.current) return;
+
+        let topIdx = activeIdx;
+        let topY = Infinity;
+
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const idx = els.indexOf(entry.target as HTMLDivElement);
+          if (idx === -1) continue;
+
+          const rect = entry.boundingClientRect;
+          if (rect.top < topY) {
+            topY = rect.top;
+            topIdx = idx;
+          }
+        }
+
+        setActiveIdx(topIdx);
+      },
+      { rootMargin: '-80px 0px -50% 0px', threshold: 0 },
+    );
+
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [activeIdx]);
+
+  const scrollToSection = useCallback((idx: number) => {
+    const el = sectionRefs.current[idx];
+    if (!el) return;
+
+    isScrollingTo.current = true;
+    setActiveIdx(idx);
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    setTimeout(() => {
+      isScrollingTo.current = false;
+    }, 800);
+  }, []);
+
+  const goToNextSection = useCallback(() => {
+    if (activeIdx < DOCUMENT_SECTIONS.length - 1) {
+      scrollToSection(activeIdx + 1);
     }
-  }, [allRequiredAcknowledged, acknowledged, onAcknowledge]);
-
-  const handleAcknowledgeAndContinue = useCallback(() => {
-    const target = pageMeta.find((p) => p.required && !acknowledgedPages.has(p.id));
-    if (!target) return;
-
-    const next = new Set(acknowledgedPages);
-    next.add(target.id);
-    onAcknowledgedPageIdsChange(Array.from(next));
-
-    const currentIdx = pageMeta.findIndex((p) => p.id === target.id);
-    for (let i = currentIdx + 1; i < pageMeta.length; i++) {
-      const meta = pageMeta[i];
-      const el = sectionRefs.current[meta.id];
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 100;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-        return;
-      }
-    }
-  }, [pageMeta, acknowledgedPages, onAcknowledgedPageIdsChange]);
+  }, [activeIdx, scrollToSection]);
 
   return (
     <div className="max-w-3xl mx-auto px-0 sm:px-6 pt-0 sm:pt-4 pb-28">
@@ -523,95 +703,56 @@ export function ReviewStep({
 
       {/* All pages stacked vertically */}
       <div className="bg-white sm:border-x border-[var(--border-default)]">
-        {pageMeta.map((meta, idx) => {
-          const showAckFooter = ackSettings.enabled && meta.required;
-          const footerText =
-            meta.acknowledgementText ||
-            'I acknowledge that I have reviewed this section of the proposal.';
+        {DOCUMENT_SECTIONS.map((section, idx) => (
+          <div
+            key={section.id}
+            ref={(el) => { sectionRefs.current[idx] = el; }}
+            className="scroll-mt-[100px]"
+          >
+            {idx > 0 && (
+              <div className="h-3 bg-[var(--surface)] sm:border-x border-[var(--border-default)]" />
+            )}
+            <div>
+              {section.id === 'cover' && <CoverPage proposal={proposal} />}
+              {section.id === 'projects' && <PastProjectsPage proposal={proposal} />}
+              {section.id === 'inspection' && <InspectionPage proposal={proposal} />}
+              {section.id === 'scope' && <ScopePage proposal={proposal} />}
+              {section.id === 'materials' && <MaterialsWarrantyPage proposal={proposal} />}
+              {section.id === 'terms' && <TermsPage proposal={proposal} />}
 
-          return (
-            <div key={meta.id}>
-              {idx > 0 && (
-                <div className="h-3 bg-[var(--surface)] sm:border-x border-[var(--border-default)]" />
+              {ackByPageId[section.id] && (
+                <AcknowledgementPreviewFooter text={ackByPageId[section.id]} />
               )}
-              <div ref={(el) => { sectionRefs.current[meta.id] = el; }}>
-                {meta.id === 'cover' && <CoverPage proposal={proposal} />}
-                {meta.id === 'inspection' && <InspectionPage proposal={proposal} />}
-                {meta.id === 'scope' && <ScopePage proposal={proposal} />}
-                {meta.id === 'terms' && <TermsPage proposal={proposal} />}
-                {showAckFooter && (
-                  <PageAcknowledgementFooter
-                    acknowledgementText={footerText}
-                    isAcknowledged={acknowledgedPages.has(meta.id)}
-                    signatureData={signatureData}
-                  />
-                )}
-              </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* Bottom acknowledgement bar */}
+      {/* Bottom bar — steps through sections, then continues to sign */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="w-full bg-[var(--border-default)] h-0.5">
-          <motion.div
-            className="h-full bg-emerald-500"
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-          />
-        </div>
-
         <div className="bg-white/95 backdrop-blur-sm border-t border-[var(--border-default)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-            {allRequiredAcknowledged ? (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-[var(--heading)] font-sans">
-                      All sections reviewed
-                    </p>
-                    <p className="text-xs text-[var(--body-light)] font-sans">
-                      You can now proceed to package selection
-                    </p>
-                  </div>
-                </div>
-                <motion.button
-                  onClick={onContinue}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm shrink-0 font-sans"
-                >
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[var(--heading)] font-sans">
+                  {DOCUMENT_SECTIONS[activeIdx].label}
+                </p>
+                <p className="text-xs text-[var(--body-light)] font-sans mt-0.5">
+                  Section {activeIdx + 1} of {DOCUMENT_SECTIONS.length}
+                  {isLastSection && ' — last section'}
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] text-[var(--body-light)] font-sans uppercase tracking-wider">
-                    Acknowledgement {nextRequiredStep} of {requiredPages.length}
-                  </p>
-                  <p className="text-sm font-medium text-[var(--heading)] font-sans truncate">
-                    {nextRequiredMeta?.title ?? 'Review'}
-                  </p>
-                </div>
-
-                <motion.button
-                  onClick={handleAcknowledgeAndContinue}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm shrink-0 font-sans"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Acknowledge & Continue</span>
-                  <span className="sm:hidden">Acknowledge</span>
-                </motion.button>
-              </div>
-            )}
+              <motion.button
+                type="button"
+                onClick={isLastSection ? onContinue : goToNextSection}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm shrink-0 font-sans"
+              >
+                {isLastSection ? 'Continue' : 'Next Section'}
+                <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>

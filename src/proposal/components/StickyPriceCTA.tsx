@@ -10,6 +10,7 @@ interface StickyPriceCTAProps {
   ctaLabel: string;
   showBack?: boolean;
   disabled?: boolean;
+  disabledHint?: string;
 }
 
 export function StickyPriceCTA({
@@ -20,6 +21,7 @@ export function StickyPriceCTA({
   ctaLabel,
   showBack = false,
   disabled = false,
+  disabledHint,
 }: StickyPriceCTAProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-[var(--border-default)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
@@ -57,20 +59,25 @@ export function StickyPriceCTA({
         </div>
 
         {/* CTA button */}
-        <motion.button
-          onClick={onContinue}
-          disabled={disabled}
-          whileHover={disabled ? {} : { scale: 1.02 }}
-          whileTap={disabled ? {} : { scale: 0.98 }}
-          className={`shrink-0 flex items-center gap-2 px-5 sm:px-8 py-3 rounded-lg text-sm sm:text-base font-medium text-white transition-all duration-200 font-sans ${
-            disabled
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] shadow-sm hover:shadow-md'
-          }`}
-        >
-          {ctaLabel}
-          <ArrowRight className="w-4 h-4" />
-        </motion.button>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <motion.button
+            onClick={onContinue}
+            disabled={disabled}
+            whileHover={disabled ? {} : { scale: 1.02 }}
+            whileTap={disabled ? {} : { scale: 0.98 }}
+            className={`flex items-center gap-2 px-5 sm:px-8 py-3 rounded-lg text-sm sm:text-base font-medium text-white transition-all duration-200 font-sans ${
+              disabled
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] shadow-sm hover:shadow-md'
+            }`}
+          >
+            {ctaLabel}
+            <ArrowRight className="w-4 h-4" />
+          </motion.button>
+          {disabled && disabledHint && (
+            <p className="text-[11px] text-amber-600 font-sans">{disabledHint}</p>
+          )}
+        </div>
       </div>
     </div>
   );

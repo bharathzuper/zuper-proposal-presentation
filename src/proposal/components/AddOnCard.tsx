@@ -76,7 +76,7 @@ export function AddOnCard({ addon, isSelected, onToggle, subOptionSelections, on
           : 'border-[var(--border-default)] bg-white hover:shadow-md'
       }`}
     >
-      <div className="relative h-40 overflow-hidden shrink-0">
+      <div className="relative h-28 overflow-hidden shrink-0">
         <AddOnHero addon={addon} />
       </div>
 
@@ -109,7 +109,7 @@ export function AddOnCard({ addon, isSelected, onToggle, subOptionSelections, on
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                Include This Upgrade
+                Include this upgrade
               </>
             )}
           </motion.button>

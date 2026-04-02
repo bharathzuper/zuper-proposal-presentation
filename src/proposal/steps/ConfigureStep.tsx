@@ -56,6 +56,11 @@ export function ConfigureStep({
     })
     .map((t) => t.id);
 
+  const configuredCount = pkg
+    ? pkg.configGroups.filter((g) => sel?.configSelections[g.id]).length
+    : 0;
+  const totalGroups = pkg?.configGroups.length || 0;
+
   return (
     <div className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 pb-32">
       <motion.div
@@ -91,11 +96,16 @@ export function ConfigureStep({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
           >
-            {isMultiTrade && (
-              <p className="text-sm text-[var(--body-light)] font-sans mb-6">
-                Configuring <span className="font-medium text-[var(--heading)]">{activeTrade.name} — {pkg.name}</span>
-              </p>
-            )}
+            {/* Package context — always visible */}
+            <p className="text-sm text-[var(--body-light)] font-sans mb-6">
+              Customizing{' '}
+              <span className="font-medium text-[var(--heading)]">
+                {activeTrade.name} — {pkg.name}
+              </span>
+              {totalGroups > 1 && (
+                <span> &middot; {configuredCount} of {totalGroups} configured</span>
+              )}
+            </p>
 
             {/* Config groups */}
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-10">

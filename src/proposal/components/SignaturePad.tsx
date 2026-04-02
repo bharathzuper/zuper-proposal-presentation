@@ -90,7 +90,7 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm text-[var(--body)] font-sans">
           <PenTool className="w-4 h-4" />
-          Sign with your finger or mouse
+          Draw your signature below
         </div>
         {hasSignature && (
           <button

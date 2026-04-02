@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ProposalStepper } from './components/ProposalStepper';
 import { StickyPriceCTA } from './components/StickyPriceCTA';
@@ -14,7 +14,6 @@ import { usePriceCalculation } from './hooks/usePriceCalculation';
 import { useStepNavigation } from './hooks/useStepNavigation';
 import { mockProposalV2 } from './data/mockData';
 import { AcknowledgementSettingsProvider } from './context/AcknowledgementSettingsContext';
-import type { AcknowledgedPageSnapshot } from './types/proposal.types';
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -33,12 +32,6 @@ function ProposalPageContent() {
   const state = useProposalState(proposal);
   const nav = useStepNavigation();
   const breakdown = usePriceCalculation(proposal, state.selections);
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [reviewAcknowledgedPageIds, setReviewAcknowledgedPageIds] = useState<string[]>([]);
-  const [acknowledgedPagesSnapshot, setAcknowledgedPagesSnapshot] = useState<
-    AcknowledgedPageSnapshot[]
-  >([]);
-
   const adaptiveLabel = useMemo(() => {
     const activeTrades = proposal.trades.filter(
       (t) => !state.selections.skippedTradeIds.includes(t.id)
@@ -70,10 +63,6 @@ function ProposalPageContent() {
     return selectedNames.join(' + ');
   }, [proposal, state.selections]);
 
-  const handleReviewAcknowledgedPageIdsChange = useCallback((ids: string[]) => {
-    setReviewAcknowledgedPageIds(ids);
-  }, []);
-
   if (state.isComplete) {
     return (
       <SuccessScreen
@@ -93,7 +82,7 @@ function ProposalPageContent() {
 
   const canProceed = (() => {
     const step = nav.currentStep;
-    if (step.id === 'review') return acknowledged;
+    if (step.id === 'review') return true;
     if (step.id === 'package') {
       const activeTrades = proposal.trades.filter(
         (t) => !state.selections.skippedTradeIds.includes(t.id)
@@ -124,21 +113,28 @@ function ProposalPageContent() {
 
   const hideStickyBar = nav.currentStep.id === 'sign' || nav.currentStep.id === 'review';
 
+  const disabledHint = (() => {
+    if (canProceed) return undefined;
+    if (nav.currentStep.id === 'package') {
+      const pending = proposal.trades.filter(
+        (t) =>
+          !state.selections.skippedTradeIds.includes(t.id) &&
+          !state.selections.tradeSelections[t.id]?.packageId
+      );
+      if (pending.length > 0) {
+        return `Select a ${pending[0].name} package to continue`;
+      }
+    }
+    if (nav.currentStep.id === 'configure') {
+      return 'Complete all configuration options to continue';
+    }
+    return undefined;
+  })();
+
   const renderStep = () => {
     switch (nav.currentStep.id) {
       case 'review':
-        return (
-          <ReviewStep
-            proposal={proposal}
-            acknowledged={acknowledged}
-            onAcknowledge={setAcknowledged}
-            onContinue={nav.goNext}
-            signatureData={state.selections.signatureData}
-            acknowledgedPageIds={reviewAcknowledgedPageIds}
-            onAcknowledgedPageIdsChange={handleReviewAcknowledgedPageIdsChange}
-            onAcknowledgedPagesSnapshotChange={setAcknowledgedPagesSnapshot}
-          />
-        );
+        return <ReviewStep proposal={proposal} onContinue={nav.goNext} />;
       case 'package':
         return (
           <PackageStep
@@ -176,7 +172,6 @@ function ProposalPageContent() {
             proposal={proposal}
             selections={state.selections}
             breakdown={breakdown}
-            acknowledgedPages={acknowledgedPagesSnapshot}
             onSign={(sig) => {
               state.setSignature(sig);
               state.completeProposal();
@@ -226,6 +221,7 @@ function ProposalPageContent() {
           onBack={nav.goBack}
           showBack={!nav.isFirstStep}
           disabled={!canProceed}
+          disabledHint={disabledHint}
         />
       )}
     </div>
