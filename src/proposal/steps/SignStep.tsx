@@ -70,7 +70,7 @@ export function SignStep({ proposal, selections, breakdown, onSign }: SignStepPr
           Review & Sign
         </h1>
         <p className="text-[var(--body)] font-sans text-base leading-relaxed max-w-lg">
-          Review your selections below, then sign to accept the proposal.
+          Review your selections, sign below, confirm each acknowledgement, and accept.
         </p>
       </motion.div>
 
@@ -84,70 +84,11 @@ export function SignStep({ proposal, selections, breakdown, onSign }: SignStepPr
         <OrderSummary proposal={proposal} selections={selections} breakdown={breakdown} />
       </motion.div>
 
-      {/* Page acknowledgements — affirmed when customer signs */}
-      {acknowledgementPages.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-          className="mb-8 rounded-xl border border-[var(--border-default)] bg-white p-5 sm:p-6"
-        >
-          <h3 className="text-sm font-semibold text-[var(--heading)] font-sans mb-1">
-            Document acknowledgements
-          </h3>
-          <p className="text-xs text-[var(--body-light)] font-sans mb-4 leading-relaxed">
-            Please review and check each acknowledgement before signing.
-          </p>
-          <ul className="space-y-3">
-            {acknowledgementPages.map((page) => {
-              const isChecked = checkedAcks.has(page.pageId);
-              return (
-                <li key={page.pageId}>
-                  <button
-                    type="button"
-                    onClick={() => toggleAck(page.pageId)}
-                    className={`w-full text-left flex gap-3 p-3.5 rounded-lg border transition-all duration-200 ${
-                      isChecked
-                        ? 'border-emerald-300 bg-emerald-50/60'
-                        : 'border-[var(--border-default)] bg-[var(--surface)] hover:border-[var(--body-light)]/40'
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 border-2 transition-all duration-200 ${
-                        isChecked
-                          ? 'bg-emerald-600 border-emerald-600'
-                          : 'border-[var(--border-default)] bg-white'
-                      }`}
-                    >
-                      {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-sm font-medium font-sans ${isChecked ? 'text-emerald-800' : 'text-[var(--heading)]'}`}>
-                        {page.pageTitle}
-                      </p>
-                      <p className={`text-xs font-sans mt-1 leading-relaxed ${isChecked ? 'text-emerald-700/80' : 'text-[var(--body)]'}`}>
-                        {page.acknowledgementText}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {!allAcksChecked && (
-            <p className="text-xs text-amber-600 font-sans mt-3">
-              Check all {acknowledgementPages.length} acknowledgements to continue
-            </p>
-          )}
-        </motion.div>
-      )}
-
-      {/* Signer Info */}
+      {/* Sign & Acknowledge */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
         className="bg-white rounded-xl border border-[var(--border-default)] p-6 sm:p-8 mb-8"
       >
         <div className="flex items-start gap-4 mb-6">
@@ -155,21 +96,10 @@ export function SignStep({ proposal, selections, breakdown, onSign }: SignStepPr
             <FileText className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} />
           </div>
           <div>
-            <h3 className="text-lg font-serif text-[var(--heading)]">Signature Required</h3>
+            <h3 className="text-lg font-serif text-[var(--heading)]">Sign & Accept</h3>
             <p className="text-sm text-[var(--body)] font-sans mt-1 leading-relaxed">
-              {acknowledgementPages.length > 0 ? (
-                <>
-                  By signing below, you confirm each acknowledgement listed above, agree to the
-                  proposal terms, and authorize <strong>{proposal.contractorInfo.name}</strong> to
-                  proceed with the work as described.
-                </>
-              ) : (
-                <>
-                  By signing below, you agree to the proposal terms and authorize{' '}
-                  <strong>{proposal.contractorInfo.name}</strong> to proceed with the work as
-                  described.
-                </>
-              )}
+              Sign below, confirm each acknowledgement, then accept the proposal to authorize{' '}
+              <strong>{proposal.contractorInfo.name}</strong> to proceed.
             </p>
             {proposal.termsUrl && (
               <a href={proposal.termsUrl} className="text-sm font-sans mt-1 inline-block underline" style={{ color: 'var(--brand-primary)' }}>
@@ -192,12 +122,55 @@ export function SignStep({ proposal, selections, breakdown, onSign }: SignStepPr
 
         <SignaturePad onSignatureChange={setSignatureData} />
 
+        {/* Acknowledgements */}
+        {acknowledgementPages.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-[var(--border-default)]">
+            <p className="text-sm text-[var(--body)] font-sans mb-4">
+              I understand that my signature/initials will be applied to:
+            </p>
+            <ul className="space-y-2.5">
+              {acknowledgementPages.map((page) => {
+                const isChecked = checkedAcks.has(page.pageId);
+                return (
+                  <li key={page.pageId}>
+                    <button
+                      type="button"
+                      onClick={() => toggleAck(page.pageId)}
+                      className="w-full text-left flex items-center gap-3"
+                    >
+                      <div
+                        className={`w-[18px] h-[18px] rounded flex items-center justify-center shrink-0 border-2 transition-all duration-200 ${
+                          isChecked
+                            ? 'bg-emerald-600 border-emerald-600'
+                            : 'border-[var(--border-default)] bg-white'
+                        }`}
+                      >
+                        {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                      </div>
+                      <span className={`text-sm font-sans ${isChecked ? 'text-[var(--heading)]' : 'text-[var(--body)]'}`}>
+                        {page.pageTitle}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {!allAcksChecked && (
+              <p className="text-xs text-amber-600 font-sans mt-3">
+                Check all {acknowledgementPages.length} acknowledgements to continue
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Accept button */}
         <motion.button
           onClick={handleSubmit}
           disabled={!signatureData || !allAcksChecked || isSubmitting}
           whileHover={signatureData && allAcksChecked ? { scale: 1.01 } : {}}
           whileTap={signatureData && allAcksChecked ? { scale: 0.99 } : {}}
-          className={`mt-6 w-full py-4 rounded-xl text-base font-medium font-sans flex items-center justify-center gap-2 transition-all duration-200 ${
+          className={`mt-8 w-full py-4 rounded-xl text-base font-medium font-sans flex items-center justify-center gap-2 transition-all duration-200 ${
             signatureData && allAcksChecked && !isSubmitting
               ? 'bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)] shadow-md hover:shadow-lg'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -212,13 +185,13 @@ export function SignStep({ proposal, selections, breakdown, onSign }: SignStepPr
           ) : (
             <>
               <Check className="w-5 h-5" strokeWidth={3} />
-              Sign & Accept Proposal
+              Accept Proposal
             </>
           )}
         </motion.button>
 
         <p className="text-xs text-[var(--body-light)] font-sans text-center mt-3">
-          You'll receive a confirmation email at {currentSigner.email}
+          You&apos;ll receive a confirmation email at {currentSigner.email}
         </p>
       </motion.div>
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
   Award,
@@ -11,7 +11,7 @@ import {
   Star,
   Hammer,
   ShieldCheck,
-  FileSignature,
+
 } from 'lucide-react';
 import type { Proposal } from '../types/proposal.types';
 import { useAcknowledgementSettings } from '../context/AcknowledgementSettingsContext';
@@ -591,29 +591,12 @@ function TermsPage({ proposal }: { proposal: Proposal }) {
 
 function AcknowledgementPreviewFooter({ text }: { text: string }) {
   return (
-    <div className="border-t border-dashed border-[var(--border-default)] bg-slate-50/80">
-      <div className="px-6 py-5 sm:px-10 sm:py-6">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-5 h-5 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center shrink-0 mt-0.5">
-            <FileSignature className="w-3 h-3 text-[var(--brand-primary)]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] text-[var(--brand-primary)] font-sans font-medium uppercase tracking-wider mb-1">
-              Acknowledgement Required
-            </p>
-            <p className="text-sm text-[var(--body)] leading-relaxed font-sans">
-              {text}
-            </p>
-          </div>
-        </div>
-
-        <div className="relative rounded-lg border border-dashed border-[var(--border-default)] h-16 bg-white/60 flex items-center justify-center gap-2">
-          <div className="w-16 border-b border-[var(--body-light)]/25" />
-          <span className="text-[11px] text-[var(--body-light)]/70 font-sans tracking-wide">
-            Your signature will appear here
-          </span>
-          <div className="w-16 border-b border-[var(--body-light)]/25" />
-        </div>
+    <div className="mx-6 sm:mx-10 mb-5 mt-2 flex items-center gap-2 px-3 py-2 rounded border border-dashed border-[var(--brand-primary)]/25 bg-[var(--brand-primary)]/[0.04]">
+      <p className="text-[11px] text-[var(--body)] leading-none font-sans min-w-0 truncate">{text}</p>
+      <div className="ml-auto shrink-0 flex items-center gap-1">
+        <div className="w-8 border-b border-[var(--body-light)]/30" />
+        <span className="text-[9px] text-[var(--body-light)]/50 font-sans whitespace-nowrap">sign here</span>
+        <div className="w-8 border-b border-[var(--body-light)]/30" />
       </div>
     </div>
   );
@@ -632,64 +615,6 @@ export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
       )
     : {};
 
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const isScrollingTo = useRef(false);
-
-  const isLastSection = activeIdx === DOCUMENT_SECTIONS.length - 1;
-
-  useEffect(() => {
-    const els = sectionRefs.current.filter(Boolean) as HTMLDivElement[];
-    if (els.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isScrollingTo.current) return;
-
-        let topIdx = activeIdx;
-        let topY = Infinity;
-
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const idx = els.indexOf(entry.target as HTMLDivElement);
-          if (idx === -1) continue;
-
-          const rect = entry.boundingClientRect;
-          if (rect.top < topY) {
-            topY = rect.top;
-            topIdx = idx;
-          }
-        }
-
-        setActiveIdx(topIdx);
-      },
-      { rootMargin: '-80px 0px -50% 0px', threshold: 0 },
-    );
-
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [activeIdx]);
-
-  const scrollToSection = useCallback((idx: number) => {
-    const el = sectionRefs.current[idx];
-    if (!el) return;
-
-    isScrollingTo.current = true;
-    setActiveIdx(idx);
-
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    setTimeout(() => {
-      isScrollingTo.current = false;
-    }, 800);
-  }, []);
-
-  const goToNextSection = useCallback(() => {
-    if (activeIdx < DOCUMENT_SECTIONS.length - 1) {
-      scrollToSection(activeIdx + 1);
-    }
-  }, [activeIdx, scrollToSection]);
-
   return (
     <div className="max-w-3xl mx-auto px-0 sm:px-6 pt-0 sm:pt-4 pb-28">
       {/* Document header */}
@@ -704,11 +629,7 @@ export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
       {/* All pages stacked vertically */}
       <div className="bg-white sm:border-x border-[var(--border-default)]">
         {DOCUMENT_SECTIONS.map((section, idx) => (
-          <div
-            key={section.id}
-            ref={(el) => { sectionRefs.current[idx] = el; }}
-            className="scroll-mt-[100px]"
-          >
+          <div key={section.id}>
             {idx > 0 && (
               <div className="h-3 bg-[var(--surface)] sm:border-x border-[var(--border-default)]" />
             )}
@@ -728,31 +649,20 @@ export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
         ))}
       </div>
 
-      {/* Bottom bar — steps through sections, then continues to sign */}
+      {/* Bottom bar — continue to next step */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="bg-white/95 backdrop-blur-sm border-t border-[var(--border-default)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[var(--heading)] font-sans">
-                  {DOCUMENT_SECTIONS[activeIdx].label}
-                </p>
-                <p className="text-xs text-[var(--body-light)] font-sans mt-0.5">
-                  Section {activeIdx + 1} of {DOCUMENT_SECTIONS.length}
-                  {isLastSection && ' — last section'}
-                </p>
-              </div>
-              <motion.button
-                type="button"
-                onClick={isLastSection ? onContinue : goToNextSection}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm shrink-0 font-sans"
-              >
-                {isLastSection ? 'Continue' : 'Next Section'}
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </div>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-end">
+            <motion.button
+              type="button"
+              onClick={onContinue}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary-hover)] transition-colors shadow-sm font-sans"
+            >
+              Continue
+              <ArrowRight className="w-4 h-4" />
+            </motion.button>
           </div>
         </div>
       </div>
