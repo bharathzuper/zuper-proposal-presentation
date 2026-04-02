@@ -14,7 +14,7 @@ export function useStepNavigation() {
   const goToStep = useCallback((index: number) => {
     if (index >= 0 && index < steps.length) {
       setCurrentStepIndex(index);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [steps.length]);
 
@@ -24,14 +24,14 @@ export function useStepNavigation() {
         prev.includes(currentStepIndex) ? prev : [...prev, currentStepIndex]
       );
       setCurrentStepIndex((i) => i + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentStepIndex, steps.length]);
 
   const goBack = useCallback(() => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex((i) => i - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentStepIndex]);
 

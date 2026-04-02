@@ -125,6 +125,7 @@ export function ConfigureStep({
                           options={group.options}
                           selectedOptionId={sel.configSelections[group.id]}
                           onSelect={(optionId) => onSelectConfig(activeTrade.id, group.id, optionId)}
+                          required
                         />
                       ))}
                     </div>

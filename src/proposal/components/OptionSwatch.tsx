@@ -114,22 +114,30 @@ interface OptionGroupProps {
   selectedOptionId?: string;
   onSelect: (optionId: string) => void;
   size?: 'sm' | 'md' | 'lg';
+  required?: boolean;
 }
 
-export function OptionGroup({ label, options, selectedOptionId, onSelect, size = 'md' }: OptionGroupProps) {
+export function OptionGroup({ label, options, selectedOptionId, onSelect, size = 'md', required }: OptionGroupProps) {
   const selectedLabel = options.find((o) => o.id === selectedOptionId)?.label;
+  const showRequired = required && !selectedOptionId;
 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-3">
-        <label className="text-sm font-medium text-[var(--heading)] font-sans">
+        <label className="text-sm font-medium text-[var(--heading)] font-sans flex items-center gap-1.5">
           {label}
+          {showRequired && (
+            <span className="text-red-500 text-xs" aria-label="required">*</span>
+          )}
         </label>
-        {selectedLabel && (
-          <span className="text-xs text-[var(--body-light)] font-sans">
+        {selectedLabel ? (
+          <span className="text-xs text-emerald-600 font-sans flex items-center gap-1">
+            <Check className="w-3 h-3" strokeWidth={2.5} />
             {selectedLabel}
           </span>
-        )}
+        ) : required ? (
+          <span className="text-[11px] text-red-500/80 font-sans">Required</span>
+        ) : null}
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
         {options.map((opt) => (
