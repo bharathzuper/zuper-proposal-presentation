@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { MessageSquare } from 'lucide-react';
 import { ProposalStepper } from './components/ProposalStepper';
 import { StickyPriceCTA } from './components/StickyPriceCTA';
 import { TrustBadges } from './components/TrustBadges';
 import { SuccessScreen } from './components/SuccessScreen';
+import { OutcomeScreen } from './components/OutcomeScreen';
+import { ChangeRequestDialog } from './components/ChangeRequestDialog';
 import { ReviewStep } from './steps/ReviewStep';
 import { PackageStep } from './steps/PackageStep';
 import { ConfigureStep } from './steps/ConfigureStep';
@@ -32,6 +35,21 @@ function ProposalPageContent() {
   const state = useProposalState(proposal);
   const nav = useStepNavigation();
   const breakdown = usePriceCalculation(proposal, state.selections);
+  const [changeRequestOpen, setChangeRequestOpen] = useState(false);
+
+  const selectionSummary = useMemo(() => {
+    return proposal.trades
+      .filter((t) => !state.selections.skippedTradeIds.includes(t.id))
+      .map((trade) => {
+        const sel = state.selections.tradeSelections[trade.id];
+        const pkg = trade.packages.find((p) => p.id === sel?.packageId);
+        if (!pkg) return null;
+        return { trade: trade.name, packageName: pkg.name };
+      })
+      .filter((s): s is { trade: string; packageName: string } => s !== null);
+  }, [proposal, state.selections]);
+
+  const hasAnyPackageSelected = selectionSummary.length > 0;
   const adaptiveLabel = useMemo(() => {
     const activeTrades = proposal.trades.filter(
       (t) => !state.selections.skippedTradeIds.includes(t.id)
@@ -63,11 +81,44 @@ function ProposalPageContent() {
     return selectedNames.join(' + ');
   }, [proposal, state.selections]);
 
-  if (state.isComplete) {
+  if (state.outcome?.kind === 'signed') {
     return (
       <SuccessScreen
         contractor={proposal.contractorInfo}
         customer={proposal.customer}
+      />
+    );
+  }
+
+  if (state.outcome?.kind === 'declined') {
+    const detail = [state.outcome.reasonLabel, state.outcome.comment]
+      .filter(Boolean)
+      .join('\n\n');
+    return (
+      <OutcomeScreen
+        kind="declined"
+        contractor={proposal.contractorInfo}
+        customer={proposal.customer}
+        detail={detail}
+        onUndo={state.clearOutcome}
+      />
+    );
+  }
+
+  if (state.outcome?.kind === 'change-requested') {
+    const detail = [
+      state.outcome.topics.length > 0 ? state.outcome.topics.join(' · ') : '',
+      state.outcome.message,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    return (
+      <OutcomeScreen
+        kind="change-requested"
+        contractor={proposal.contractorInfo}
+        customer={proposal.customer}
+        detail={detail}
+        onUndo={state.clearOutcome}
       />
     );
   }
@@ -134,7 +185,16 @@ function ProposalPageContent() {
   const renderStep = () => {
     switch (nav.currentStep.id) {
       case 'review':
-        return <ReviewStep proposal={proposal} onContinue={nav.goNext} />;
+        return (
+          <ReviewStep
+            proposal={proposal}
+            onContinue={nav.goNext}
+            onDecline={async (submission) => {
+              await new Promise((r) => setTimeout(r, 600));
+              state.declineProposal(submission.reasonLabel, submission.comment);
+            }}
+          />
+        );
       case 'package':
         return (
           <PackageStep
@@ -222,8 +282,30 @@ function ProposalPageContent() {
           showBack={!nav.isFirstStep}
           disabled={!canProceed}
           disabledHint={disabledHint}
+          secondaryAction={
+            nav.currentStep.id === 'package'
+              ? {
+                  label: 'Request changes',
+                  onClick: () => setChangeRequestOpen(true),
+                  icon: MessageSquare,
+                  visible: hasAnyPackageSelected,
+                }
+              : undefined
+          }
         />
       )}
+
+      <ChangeRequestDialog
+        open={changeRequestOpen}
+        onClose={() => setChangeRequestOpen(false)}
+        contractorName={proposal.contractorInfo.name}
+        selections={selectionSummary}
+        onSubmit={async (submission) => {
+          await new Promise((r) => setTimeout(r, 700));
+          state.requestChanges(submission.message, submission.topics);
+          setChangeRequestOpen(false);
+        }}
+      />
     </div>
   );
 }

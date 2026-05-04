@@ -1,6 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { formatPrice } from '../utils/priceFormatter';
+
+export interface StickyPriceCTASecondaryAction {
+  label: string;
+  onClick: () => void;
+  icon?: ComponentType<{ className?: string }>;
+  /** When false, the secondary action animates out (used to gate behind a state). */
+  visible?: boolean;
+}
 
 interface StickyPriceCTAProps {
   currentTotal: number;
@@ -11,6 +20,7 @@ interface StickyPriceCTAProps {
   showBack?: boolean;
   disabled?: boolean;
   disabledHint?: string;
+  secondaryAction?: StickyPriceCTASecondaryAction;
 }
 
 export function StickyPriceCTA({
@@ -22,9 +32,35 @@ export function StickyPriceCTA({
   showBack = false,
   disabled = false,
   disabledHint,
+  secondaryAction,
 }: StickyPriceCTAProps) {
+  const showSecondary = !!secondaryAction && secondaryAction.visible !== false;
+  const SecondaryIcon = secondaryAction?.icon;
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-[var(--border-default)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <AnimatePresence initial={false}>
+        {showSecondary && secondaryAction && (
+          <motion.div
+            key="secondary"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 0.9, 0.32, 1] }}
+            className="overflow-hidden border-b border-[var(--border-default)]"
+          >
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex justify-end">
+              <button
+                type="button"
+                onClick={secondaryAction.onClick}
+                className="inline-flex items-center gap-1.5 text-sm font-medium font-sans text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] transition-colors"
+              >
+                {SecondaryIcon && <SecondaryIcon className="w-3.5 h-3.5" />}
+                {secondaryAction.label}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-4">
         {/* Back button */}
         <div className="shrink-0">

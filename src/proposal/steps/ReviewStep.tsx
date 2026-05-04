@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Award,
@@ -11,14 +11,15 @@ import {
   Star,
   Hammer,
   ShieldCheck,
-
 } from 'lucide-react';
 import type { Proposal } from '../types/proposal.types';
 import { useAcknowledgementSettings } from '../context/AcknowledgementSettingsContext';
+import { DeclineDialog, type DeclineSubmission } from '../components/DeclineDialog';
 
 interface ReviewStepProps {
   proposal: Proposal;
   onContinue: () => void;
+  onDecline: (submission: DeclineSubmission) => void | Promise<void>;
 }
 
 const DOCUMENT_SECTIONS = [
@@ -604,8 +605,9 @@ function AcknowledgementPreviewFooter({ text }: { text: string }) {
 
 // ─── Main ReviewStep ───────────────────────────────────────────────────
 
-export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
+export function ReviewStep({ proposal, onContinue, onDecline }: ReviewStepProps) {
   const { settings: ackSettings } = useAcknowledgementSettings();
+  const [declineOpen, setDeclineOpen] = useState(false);
 
   const ackByPageId = ackSettings.enabled
     ? Object.fromEntries(
@@ -649,10 +651,18 @@ export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
         ))}
       </div>
 
-      {/* Bottom bar — continue to next step */}
+      {/* Bottom bar — decline (secondary) + continue (primary) */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="bg-white/95 backdrop-blur-sm border-t border-[var(--border-default)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-end">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setDeclineOpen(true)}
+              className="px-3 py-2.5 -ml-1 rounded-lg text-sm font-medium font-sans text-[var(--body-light)] hover:text-[var(--heading)] hover:bg-[var(--surface)] transition-colors"
+            >
+              <span className="hidden sm:inline">Decline proposal</span>
+              <span className="sm:hidden">Decline</span>
+            </button>
             <motion.button
               type="button"
               onClick={onContinue}
@@ -666,6 +676,16 @@ export function ReviewStep({ proposal, onContinue }: ReviewStepProps) {
           </div>
         </div>
       </div>
+
+      <DeclineDialog
+        open={declineOpen}
+        onClose={() => setDeclineOpen(false)}
+        contractorName={proposal.contractorInfo.name}
+        onSubmit={async (submission) => {
+          await onDecline(submission);
+          setDeclineOpen(false);
+        }}
+      />
     </div>
   );
 }

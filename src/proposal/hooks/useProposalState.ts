@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react';
 import type { Proposal, ProposalSelections } from '../types/proposal.types';
 
+export type ProposalOutcome =
+  | { kind: 'signed' }
+  | { kind: 'declined'; reasonLabel: string; comment: string }
+  | { kind: 'change-requested'; message: string; topics: string[] };
+
 function getInitialSelections(proposal: Proposal): ProposalSelections {
   const tradeSelections: ProposalSelections['tradeSelections'] = {};
   const isMultiTrade = proposal.trades.length > 1;
@@ -39,7 +44,8 @@ export function useProposalState(proposal: Proposal) {
   const [selections, setSelections] = useState<ProposalSelections>(() =>
     getInitialSelections(proposal)
   );
-  const [isComplete, setIsComplete] = useState(false);
+  const [outcome, setOutcome] = useState<ProposalOutcome | null>(null);
+  const isComplete = outcome?.kind === 'signed';
 
   const selectPackage = useCallback(
     (tradeId: string, packageId: string) => {
@@ -182,11 +188,30 @@ export function useProposalState(proposal: Proposal) {
   }, [proposal]);
 
   const completeProposal = useCallback(() => {
-    setIsComplete(true);
+    setOutcome({ kind: 'signed' });
+  }, []);
+
+  const declineProposal = useCallback(
+    (reasonLabel: string, comment: string) => {
+      setOutcome({ kind: 'declined', reasonLabel, comment });
+    },
+    []
+  );
+
+  const requestChanges = useCallback(
+    (message: string, topics: string[]) => {
+      setOutcome({ kind: 'change-requested', message, topics });
+    },
+    []
+  );
+
+  const clearOutcome = useCallback(() => {
+    setOutcome(null);
   }, []);
 
   return {
     selections,
+    outcome,
     isComplete,
     selectPackage,
     selectConfig,
@@ -198,5 +223,8 @@ export function useProposalState(proposal: Proposal) {
     skipTrade,
     restoreTrade,
     completeProposal,
+    declineProposal,
+    requestChanges,
+    clearOutcome,
   };
 }
